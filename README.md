@@ -15,4 +15,9 @@ In this project, I will:
  - Add a widget to your app experience.
  - Leverage the functionality of a library in your app.
 
-commit starter code
+#### TODO:
+ - Screen Reader > all buttons
+ - Egypt release > rtl
+ - Detail > price over time
+ - Widget
+ - Bugfixes > notfound, connection, blank screen
