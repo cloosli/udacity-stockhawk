@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,18 +24,16 @@ import com.sam_chordas.android.stockhawk.touch_helper.ItemTouchHelperViewHolder;
  * for the code structure
  */
 public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAdapter.ViewHolder>
-        implements ItemTouchHelperAdapter, View.OnClickListener {
+        implements ItemTouchHelperAdapter {
 
     private static final String LOGTAG = QuoteCursorAdapter.class.getSimpleName();
     private static Context mContext;
     private static Typeface robotoLight;
     private boolean isPercent;
-    private final OnQuoteClickListener mItemClickListener;
 
-    public QuoteCursorAdapter(Context context, Cursor cursor, OnQuoteClickListener onQuoteClickListener) {
+    public QuoteCursorAdapter(Context context, Cursor cursor) {
         super(context, cursor);
         mContext = context;
-        mItemClickListener = onQuoteClickListener;
     }
 
     @Override
@@ -91,22 +88,6 @@ public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAda
         return super.getItemCount();
     }
 
-    public interface OnQuoteClickListener {
-        void onQuoteClicked(View view);
-
-        OnQuoteClickListener DUMMY = new OnQuoteClickListener() {
-            @Override
-            public void onQuoteClicked(View view) {
-            }
-        };
-    }
-
-    @Override
-    public void onClick(View v) {
-        Log.i(LOGTAG, "onClick1 " + v.getTag());
-        mItemClickListener.onQuoteClicked(v);
-    }
-
     public static class ViewHolder extends RecyclerView.ViewHolder
             implements ItemTouchHelperViewHolder, View.OnClickListener {
         public final TextView symbol;
@@ -132,8 +113,6 @@ public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAda
         }
 
         @Override
-        public void onClick(View v) {
-            Log.i(LOGTAG, "onClick2 " + v.getTag());
-        }
+        public void onClick(View v) { }
     }
 }

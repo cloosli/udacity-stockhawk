@@ -8,6 +8,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -37,7 +38,8 @@ import com.sam_chordas.android.stockhawk.service.StockIntentService;
 import com.sam_chordas.android.stockhawk.service.StockTaskService;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
 
-public class MyStocksActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>, QuoteCursorAdapter.OnQuoteClickListener {
+public class MyStocksActivity extends AppCompatActivity
+        implements LoaderManager.LoaderCallbacks<Cursor> {
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
@@ -83,14 +85,17 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
 
-        mCursorAdapter = new QuoteCursorAdapter(this, null, this);
+        mCursorAdapter = new QuoteCursorAdapter(this, null);
         recyclerView.addOnItemTouchListener(new RecyclerViewItemClickListener(this,
                 new RecyclerViewItemClickListener.OnItemClickListener() {
                     @Override
                     public void onItemClick(View v, int position) {
                         Intent intent = new Intent(mContext, DetailActivity.class);
                         mCursor.moveToPosition(position);
-                        intent.putExtra(QuoteColumns.SYMBOL, mCursor.getString(mCursor.getColumnIndex(QuoteColumns.SYMBOL)));
+                        Uri contentUri = QuoteProvider.Quotes.withSymbol(mCursor.getString(mCursor.getColumnIndex(QuoteColumns.SYMBOL)));
+//                        intent.putExtra(QuoteColumns.SYMBOL, mCursor.getString(mCursor.getColumnIndex(QuoteColumns.SYMBOL)));
+//                        Intent intent = new Intent(mContext, DetailActivity.class).setData(contentUri);
+                        intent.setData(contentUri);
                         startActivity(intent);
                     }
                 }));
@@ -208,11 +213,6 @@ public class MyStocksActivity extends AppCompatActivity implements LoaderManager
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onQuoteClicked(View view) {
-        Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
     }
 
     @Override
