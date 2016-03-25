@@ -8,8 +8,10 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.sam_chordas.android.stockhawk.ui.DetailActivityFragment">
 
-<TextView
-    android:layout_width="wrap_content"
-    android:text="GOOGL Stock"
-    android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/textview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GOOGL Stock" />
+
 </RelativeLayout>
