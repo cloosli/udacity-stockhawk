@@ -32,4 +32,8 @@
         <item name="android:textAllCaps">true</item>
     </style>
 
+    <style name="DetailTextView">
+        <item name="android:textColor">@color/whithe</item>
+    </style>
+
 </resources>
