@@ -21,3 +21,8 @@ In this project, I will:
  - Detail > price over time
  - Widget
  - Bugfixes > notfound, connection, blank screen
+
+
+### Screenshots
+![alt tag](https://raw.githubusercontent.com/cloosli/udacity-stockhawk/master/art/screenshot.jpg)
+![alt tag](https://raw.githubusercontent.com/cloosli/udacity-stockhawk/master/art/screenshot-1.jpg)
