@@ -27,6 +27,10 @@ import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteDatabase;
 
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -71,8 +75,6 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     TextView mPercent_change;
     @Bind(R.id.linechart)
     LineChartView lineChartView;
-
-    private String mCreated;
 
     private Uri mUri;
 
@@ -131,12 +133,38 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
             mBidprice.setText(data.getString(COL_QUOTE_BIDPRICE));
             mChange.setText(data.getString(COL_QUOTE_CHANGE));
             mPercent_change.setText(data.getString(COL_QUOTE_PERCENT_CHANGE));
-            mCreated = data.getString(COL_QUOTE_CREATED);
-            if (mCreated == null) {
-                mCreated = "Null";
+
+            String format = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+            SimpleDateFormat sdf = new SimpleDateFormat(format);
+            sdf.setTimeZone(TimeZone.getTimeZone("GTM"));
+            SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd");
+            sdf2.setTimeZone(TimeZone.getDefault());
+            LineSet dataset = new LineSet();
+
+            float minValue = Float.MAX_VALUE;
+            float maxValue = 0;
+            for (data.moveToFirst(); !data.isAfterLast(); data.moveToNext()) {
+                // The Cursor is now set to the right position
+                String createdString = data.getString(data.getColumnIndex(QuoteColumns.CREATED));
+
+                Date date = null;
+                try {
+                    date = sdf.parse(createdString);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                if (date != null) {
+                    float value = Float.parseFloat(data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE)));
+                    minValue = Math.min(value, minValue);
+                    maxValue = Math.max(value, maxValue);
+                    dataset.addPoint(sdf2.format(date), value);
+                    Log.i(LOG_TAG, "date=" + createdString + " sdf2=" + sdf2.format(date) + " value=" + value);
+                } else {
+                    Log.i(LOG_TAG, "date=" + createdString + " value=" + data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE)));
+                }
             }
-            //        findRange(mCursor);
-            fillLineSet();
+
+            fillLineSet(dataset, Math.round(minValue), Math.round(maxValue));
         }
     }
 
@@ -145,22 +173,20 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 
     }
 
-    private void fillLineSet() {
-        String[] labels = new String[]{"a", "b", "c"};
-        float[] values = new float[]{20, 2, 540};
-
+    private void fillLineSet(LineSet dataset, int minValue, int maxValue) {
+//        String[] labels = new String[]{"a", "b", "c"};
+//        float[] values = new float[]{20, 2, 540};
 //        float min = Collections.max(values);
+        int blue500 = getResources().getColor(R.color.material_blue_500);
         int bluegrey500 = getResources().getColor(R.color.material_blue_grey_500);
         // Line chart customization
-        LineSet dataset = new LineSet(labels, values);
-        float test = Float.parseFloat(mBidprice.getText().toString());
-        dataset.addPoint(mCreated, test);
         dataset.setThickness(Tools.fromDpToPx(2.0f));
-        dataset.setColor(bluegrey500);
+        dataset.setColor(blue500);
         dataset.setDotsRadius(5f);
-        dataset.setDotsColor(bluegrey500);
+        dataset.setDotsColor(blue500);
 
         lineChartView.addData(dataset);
+        lineChartView.setClickablePointRadius(5f);
 
         // Generic chart customization
         lineChartView.setAxisColor(bluegrey500);
@@ -171,11 +197,17 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         gridPaint.setStyle(Paint.Style.STROKE);
         gridPaint.setAntiAlias(true);
         gridPaint.setStrokeWidth(Tools.fromDpToPx(0.5f));
-        int maxValue = test > 600 ? Math.round(test) : 600;
-        maxValue = ((maxValue + 99) / 100) * 100;
-        lineChartView.setAxisBorderValues(0, maxValue, maxValue / 10);
+
+        if (minValue>10) {
+            minValue = ((minValue - 9) / 10) * 10;
+        }
+        maxValue = ((maxValue + 9) / 10) * 10;
+//        lineChartView.setAxisBorderValues(minValue, maxValue, maxValue / 10);
+        lineChartView.setAxisBorderValues(minValue, maxValue);
         lineChartView.setGrid(ChartView.GridType.HORIZONTAL, gridPaint);
         lineChartView.setLabelsFormat(new DecimalFormat("#"));
+        lineChartView.setStep(100);
+//        lineChartView.setAxisLabelsSpacing(3f);
 
         // Animation customization
         Animation anim = new Animation(500);
