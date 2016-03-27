@@ -1,14 +1,31 @@
 <resources>
+    <!--
+     Used in Action Bar, and in AndroidManifest to tell the device the name of this app.
+     It's to keep this short, so your launcher icon isn't displayed with "The greatest Wea"
+     or something similar.
+    -->
     <string name="app_name">Stock Hawk</string>
 
+    <!--
+     By convention, "action" denotes that this String will be used as the label for an Action,
+     typically from the action bar.  The ActionBar is limited real estate, so shorter is better.
+    -->
     <string name="action_example">Example action</string>
-
     <string name="action_settings">Settings</string>
     <string name="action_change_units">Change Units</string>
+
     <string name="symbol_search">Symbol Search</string>
     <string name="content_test">Search for a Stock Symbol</string>
-    <string name="input_hint">FB</string>
+    <string name="input_hint" translatable="false" >FB</string>
     <string name="input_prefill"></string>
     <string name="widget_title">Today\'s Market</string>
     <string name="network_toast">Uh-oh! This app requires an internet connection</string>
+
+    <!-- Empty Quote Database -->
+    <string name="empty_quote_list">No Quote Information Available</string>
+    <string name="empty_quote_list_no_network">No quote information available. The network is not available to fetch quote data.</string>
+    <!--<string name="empty_quote_list_server_down">No quote information available. The server is not returning data.</string>-->
+    <!--<string name="empty_quote_list_server_error">No quote information available. The server is not returning valid data. Please check for an updated version of Stock Hawk.</string>-->
+    <string name="empty_quote_list_invalid_stock">No quote information available. The location in settings is not recognized by the quote server.</string>
+
 </resources>

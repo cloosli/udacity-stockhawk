@@ -6,10 +6,10 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -21,13 +21,13 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.gcm.GcmNetworkManager;
 import com.google.android.gms.gcm.PeriodicTask;
 import com.google.android.gms.gcm.Task;
-import com.melnykov.fab.FloatingActionButton;
 import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
@@ -38,6 +38,9 @@ import com.sam_chordas.android.stockhawk.service.StockIntentService;
 import com.sam_chordas.android.stockhawk.service.StockTaskService;
 import com.sam_chordas.android.stockhawk.touch_helper.SimpleItemTouchHelperCallback;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 public class MyStocksActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor> {
 
@@ -45,17 +48,24 @@ public class MyStocksActivity extends AppCompatActivity
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
 
+    private static final int CURSOR_LOADER_ID = 0;
+    boolean isConnected;
+
+    @Bind(R.id.listview_quote_empty)
+    TextView mEmptyTextView;
+
+    @Bind(R.id.fab)
+    FloatingActionButton mFAB;
+
     /**
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
     private Intent mServiceIntent;
     private ItemTouchHelper mItemTouchHelper;
-    private static final int CURSOR_LOADER_ID = 0;
     private QuoteCursorAdapter mCursorAdapter;
     private Context mContext;
     private Cursor mCursor;
-    boolean isConnected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,10 +75,10 @@ public class MyStocksActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
 
+        ButterKnife.bind(this);
+
         mContext = this;
-        ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+        isConnected = Utils.isNetworkAvailable(mContext);
         // The intent service is for executing immediate pulls from the Yahoo API
         // GCMTaskService can only schedule tasks, they cannot execute immediately
         mServiceIntent = new Intent(this, StockIntentService.class);
@@ -77,10 +87,11 @@ public class MyStocksActivity extends AppCompatActivity
             mServiceIntent.putExtra("tag", "init");
             if (isConnected) {
                 startService(mServiceIntent);
-            } else {
-                networkToast();
+//            } else {
+//                networkSnackbar();
             }
         }
+        mEmptyTextView.setVisibility(View.GONE);
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         getLoaderManager().initLoader(CURSOR_LOADER_ID, null, this);
@@ -101,10 +112,8 @@ public class MyStocksActivity extends AppCompatActivity
                 }));
         recyclerView.setAdapter(mCursorAdapter);
 
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.attachToRecyclerView(recyclerView);
-        fab.setOnClickListener(new View.OnClickListener() {
+//        mFAB.attachToRecyclerView(recyclerView);
+        mFAB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (isConnected) {
@@ -136,7 +145,7 @@ public class MyStocksActivity extends AppCompatActivity
                             })
                             .show();
                 } else {
-                    networkToast();
+                    networkSnackbar();
                 }
 
             }
@@ -174,10 +183,6 @@ public class MyStocksActivity extends AppCompatActivity
     public void onResume() {
         super.onResume();
         getLoaderManager().restartLoader(CURSOR_LOADER_ID, null, this);
-    }
-
-    public void networkToast() {
-        Toast.makeText(mContext, getString(R.string.network_toast), Toast.LENGTH_SHORT).show();
     }
 
     public void restoreActionBar() {
@@ -230,11 +235,32 @@ public class MyStocksActivity extends AppCompatActivity
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mCursorAdapter.swapCursor(data);
         mCursor = data;
+        updateEmptyView();
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mCursorAdapter.swapCursor(null);
     }
+    
+    private void updateEmptyView() {
+        if (mCursorAdapter.getItemCount() == 0) {
+            int message = R.string.empty_quote_list;
+            if (!isConnected) {
+                message = R.string.empty_quote_list_no_network;
+            }
+            mEmptyTextView.setText(message);
+            mEmptyTextView.setVisibility(View.VISIBLE);
+        } else {
+            mEmptyTextView.setVisibility(View.GONE);
+            if (!isConnected) {
+                networkSnackbar();
+            }
+        }
+    }
 
+    private void networkSnackbar() {
+        View view = ButterKnife.findById(this, R.id.frameLayout);
+        Snackbar.make(view, getString(R.string.empty_quote_list_no_network), Snackbar.LENGTH_LONG).show();
+    }
 }
