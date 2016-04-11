@@ -2,9 +2,9 @@ package com.sam_chordas.android.stockhawk.ui;
 
 import android.database.Cursor;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -16,7 +16,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.db.chart.Tools;
-import com.db.chart.listener.OnEntryClickListener;
 import com.db.chart.model.LineSet;
 import com.db.chart.view.ChartView;
 import com.db.chart.view.LineChartView;
@@ -26,14 +25,20 @@ import com.sam_chordas.android.stockhawk.R;
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteDatabase;
 
-import java.text.DecimalFormat;
-import java.text.ParseException;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.TimeZone;
+import java.util.ArrayList;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -56,14 +61,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
             QuoteColumns.ISCURRENT,
     };
 
-    private static final int COL_QUOTE__ID = 0;
     private static final int COL_QUOTE_SYMBOL = 1;
-    private static final int COL_QUOTE_PERCENT_CHANGE = 2;
-    private static final int COL_QUOTE_CHANGE = 3;
-    private static final int COL_QUOTE_BIDPRICE = 4;
-    private static final int COL_QUOTE_CREATED = 5;
-    private static final int COL_QUOTE_ISUP = 6;
-    private static final int COL_QUOTE_ISCURRENT = 7;
 
     @Bind(R.id.detail_symbol_tv)
     TextView mSymbol;
@@ -74,7 +72,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     @Bind(R.id.detail_percent_change_tv)
     TextView mPercent_change;
     @Bind(R.id.linechart)
-    LineChartView lineChartView;
+    LineChartView mChart;
 
     private Uri mUri;
 
@@ -117,8 +115,8 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
                     getActivity(),
                     mUri,
                     DETAIL_COLUMNS,
-                    null,
-                    null,
+                    QuoteColumns.ISCURRENT + " = ?",
+                    new String[]{"1"},
                     null
             );
         }
@@ -130,41 +128,40 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         if (data != null && data.moveToFirst()) {
             String symbol = data.getString(COL_QUOTE_SYMBOL);
             mSymbol.setText(symbol);
-            mBidprice.setText(data.getString(COL_QUOTE_BIDPRICE));
-            mChange.setText(data.getString(COL_QUOTE_CHANGE));
-            mPercent_change.setText(data.getString(COL_QUOTE_PERCENT_CHANGE));
+            mBidprice.setText(data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE)));
+            mChange.setText(data.getString(data.getColumnIndex(QuoteColumns.CHANGE)));
+            mPercent_change.setText(data.getString(data.getColumnIndex(QuoteColumns.PERCENT_CHANGE)));
 
-            String format = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-            SimpleDateFormat sdf = new SimpleDateFormat(format);
-            sdf.setTimeZone(TimeZone.getTimeZone("GTM"));
-            SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd");
-            sdf2.setTimeZone(TimeZone.getDefault());
-            LineSet dataset = new LineSet();
+            downloadDetails(symbol);
 
-            float minValue = Float.MAX_VALUE;
-            float maxValue = 0;
-            for (data.moveToFirst(); !data.isAfterLast(); data.moveToNext()) {
-                // The Cursor is now set to the right position
-                String createdString = data.getString(data.getColumnIndex(QuoteColumns.CREATED));
-
-                Date date = null;
-                try {
-                    date = sdf.parse(createdString);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-                if (date != null) {
-                    float value = Float.parseFloat(data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE)));
-                    minValue = Math.min(value, minValue);
-                    maxValue = Math.max(value, maxValue);
-                    dataset.addPoint(sdf2.format(date), value);
-                    Log.i(LOG_TAG, "date=" + createdString + " sdf2=" + sdf2.format(date) + " value=" + value);
-                } else {
-                    Log.i(LOG_TAG, "date=" + createdString + " value=" + data.getString(data.getColumnIndex(QuoteColumns.BIDPRICE)));
-                }
-            }
-
-            fillLineSet(dataset, Math.round(minValue), Math.round(maxValue));
+//            Log.d(LOG_TAG, "data from db : " + mChange.getText() + "; "+ mPercent_change.getText());
+//            String format = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+//            SimpleDateFormat sdf = new SimpleDateFormat(format);
+//            sdf.setTimeZone(TimeZone.getTimeZone("GTM"));
+//            SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd");
+//            sdf2.setTimeZone(TimeZone.getDefault());
+//            LineSet dataset = new LineSet();
+//
+//            float minValue = Float.MAX_VALUE;
+//            float maxValue = 0;
+//            for (data.moveToFirst(); !data.isAfterLast(); data.moveToNext()) {
+//                // The Cursor is now set to the right position
+//                String createdString = data.getString(COL_QUOTE_CREATED);
+//
+//                Date date = null;
+//                try {
+//                    date = sdf.parse(createdString);
+//                    float value = data.getFloat(COL_QUOTE_BIDPRICE);
+//                    minValue = Math.min(value, minValue);
+//                    maxValue = Math.max(value, maxValue);
+//                    dataset.addPoint(sdf2.format(date), value);
+////                    Log.i(LOG_TAG, "date=" + createdString + " sdf2=" + sdf2.format(date) + " value=" + value);
+//                } catch (ParseException | NumberFormatException e) {
+//                    Log.e(LOG_TAG, e.getMessage(), e);
+//                }
+//            }
+//
+//            fillLineSet(dataset, Math.round(minValue), Math.round(maxValue));
         }
     }
 
@@ -173,60 +170,203 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 
     }
 
+    private void downloadDetails(String symbol) {
+        //TODO: laod data from the database
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+//        https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.historicaldata%20where%20symbol%20%3D%20%22YHOO%22%20and%20startDate%20%3D%20%222009-09-11%22%20and%20endDate%20%3D%20%222010-03-10%22&format=json&diagnostics=true&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&callback=
+//        http://chartapi.finance.yahoo.com/instrument/1.0/YHOO/chartdata;type=quote;range=5d/json
+                .url("https://chartapi.finance.yahoo.com/instrument/1.0/" + symbol + "/chartdata;type=quote;range=1m/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                downloadFailed();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.code() != 200) {
+                    downloadFailed();
+                } else {
+                    String result = response.body().string();
+                    downloadComplete(result);
+                }
+            }
+        });
+    }
+
+    private void downloadComplete(String result) {
+        try {
+            if (result.startsWith("finance_charts_json_callback( ")) {
+                result = result.substring(29, result.length() - 2);
+            }
+            JSONObject object = new JSONObject(result);
+            final String companyName = object.getJSONObject("meta").getString("Company-Name");
+
+            JSONArray labels = object.getJSONArray("labels");
+            ArrayList<String> labelsList = new ArrayList<>();
+            // skip first entry
+            for (int i = 1; i <labels.length(); i++) {
+                labelsList.add(labels.getString(i));
+            }
+
+            final LineSet dataset = new LineSet();
+
+            SimpleDateFormat srcFormat = new SimpleDateFormat("yyyyMMdd");
+            JSONArray series = object.getJSONArray("series");
+            for (int i = 0; i < series.length(); i++) {
+                JSONObject seriesItem = series.getJSONObject(i);
+                String date = "";
+                if (labelsList.contains(seriesItem.getString("Date"))) {
+                    date = android.text.format.DateFormat.getMediumDateFormat(getActivity()).format(srcFormat.parse(seriesItem.getString("Date")));
+                }
+                dataset.addPoint(date, Float.parseFloat(seriesItem.getString("close")));
+            }
+            JSONObject closeRanges = object.getJSONObject("ranges").getJSONObject("close");
+            final int min = Math.round(Float.parseFloat(closeRanges.getString("min")));
+            final int max = Math.round(Float.parseFloat(closeRanges.getString("max")));
+            fillLineSet(dataset, min, max);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    getActivity().setTitle(companyName);
+
+                }
+            });
+
+        } catch (Exception e) {
+            downloadFailed();
+            e.printStackTrace();
+        }
+
+    }
+
+//    private void setupChart(LineChart chart, LineData data, int color) {
+//////            mChart.setDrawGridBackground(false);
+////            // no description text
+////            mChart.setDescription("");
+////            mChart.setNoDataTextDescription("You need to provide data for the chart.");
+////            // enable touch gestures
+////            mChart.setTouchEnabled(true);
+//
+//    // create a dataset and give it a type
+//    LineDataSet set1 = new LineDataSet(values, "DataSet 1");
+//
+//    ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
+//    dataSets.add(set1); // add the datasets
+//
+//    // create a data object with the datasets
+//    final LineData data = new LineData(labels, dataSets);
+////
+////            // set data
+////            mChart.setData(data);
+//
+//    getActivity().runOnUiThread(new Runnable() {
+//        @Override
+//        public void run() {
+//            int blue500 = getResources().getColor(R.color.material_blue_500);
+//            setupChart(mChart, data, blue500);
+//        }
+//    });
+//        ((LineDataSet) data.getDataSetByIndex(0)).setCircleColor(color);
+//
+//        // no description text
+//        chart.setDescription("");
+//        chart.setNoDataTextDescription("You need to provide data for the chart.");
+//
+//        // mChart.setDrawHorizontalGrid(false);
+//        //
+//        // enable / disable grid background
+//        chart.setDrawGridBackground(false);
+////        chart.getRenderer().getGridPaint().setGridColor(Color.WHITE & 0x70FFFFFF);
+//
+//        // enable touch gestures
+//        chart.setTouchEnabled(true);
+//
+//        // enable scaling and dragging
+//        chart.setDragEnabled(true);
+//        chart.setScaleEnabled(true);
+//
+//        // if disabled, scaling can be done on x- and y-axis separately
+//        chart.setPinchZoom(false);
+//
+//        chart.setDrawGridBackground(false);
+//
+//        // set custom chart offsets (automatic offset calculation is hereby disabled)
+//        chart.setViewPortOffsets(10, 0, 10, 0);
+//
+//        // add data
+//        chart.setData(data);
+//
+//        // get the legend (only possible after setting data)
+//        Legend l = chart.getLegend();
+//        l.setEnabled(false);
+//
+//        chart.getAxisLeft().setEnabled(true);
+//        chart.getAxisLeft().setSpaceTop(40);
+//        chart.getAxisLeft().setSpaceBottom(40);
+//        chart.getAxisRight().setEnabled(true);
+//
+//        chart.getXAxis().setEnabled(true);
+//
+//        // animate calls invalidate()...
+//        chart.animateX(2500);
+//    }
+
+    private void downloadFailed() {
+        Snackbar.make(getView(), getString(R.string.download_error), Snackbar.LENGTH_SHORT).show();
+    }
+
     private void fillLineSet(LineSet dataset, int minValue, int maxValue) {
-//        String[] labels = new String[]{"a", "b", "c"};
-//        float[] values = new float[]{20, 2, 540};
-//        float min = Collections.max(values);
         int blue500 = getResources().getColor(R.color.material_blue_500);
         int bluegrey500 = getResources().getColor(R.color.material_blue_grey_500);
         // Line chart customization
         dataset.setThickness(Tools.fromDpToPx(2.0f));
         dataset.setColor(blue500);
-        dataset.setDotsRadius(5f);
+        dataset.setDotsRadius(8f);
         dataset.setDotsColor(blue500);
 
-        lineChartView.addData(dataset);
-        lineChartView.setClickablePointRadius(5f);
+        mChart.addData(dataset);
+
+        mChart.setLabelsColor(bluegrey500);
+        mChart.setClickablePointRadius(5f);
 
         // Generic chart customization
-        lineChartView.setAxisColor(bluegrey500);
-        lineChartView.setLabelsColor(bluegrey500);
+        mChart.setAxisColor(bluegrey500);
+        mChart.setAxisLabelsSpacing(10f);
+
         // Paint object used to draw Grid
         Paint gridPaint = new Paint();
         gridPaint.setColor(getResources().getColor(R.color.material_blue_grey_50));
         gridPaint.setStyle(Paint.Style.STROKE);
         gridPaint.setAntiAlias(true);
         gridPaint.setStrokeWidth(Tools.fromDpToPx(0.5f));
-
-        if (minValue>10) {
-            minValue = ((minValue - 9) / 10) * 10;
-        }
-        maxValue = ((maxValue + 9) / 10) * 10;
+        mChart.setGrid(ChartView.GridType.HORIZONTAL, gridPaint);
+//        if (minValue>10) {
+//            minValue = ((minValue - 9) / 10) * 10;
+//        }
+//        maxValue = ((maxValue + 9) / 10) * 10;
 //        lineChartView.setAxisBorderValues(minValue, maxValue, maxValue / 10);
-        lineChartView.setAxisBorderValues(minValue, maxValue);
-        lineChartView.setGrid(ChartView.GridType.HORIZONTAL, gridPaint);
-        lineChartView.setLabelsFormat(new DecimalFormat("#"));
-        lineChartView.setStep(100);
-//        lineChartView.setAxisLabelsSpacing(3f);
+//        mChart.setLabelsFormat(new DecimalFormat("#"));
+        int diff = maxValue - minValue;
+//        if (minValue>10 && diff > 10) {
+//            minValue = ((minValue - 9) / 10) * 10;
+//            maxValue = ((maxValue + 9) / 10) * 10;
+//            mChart.setAxisBorderValues(minValue, maxValue, maxValue / 10);
+//        }
+        mChart.setAxisBorderValues(minValue, maxValue);
+
+//        chart.setYLabels(LabelPosition.NONE/OUTSIDE/INSIDE)
+//        chart.setXLabels(LabelPosition.NONE/OUTSIDE/INSIDE)
+//        mChart.setAxisLabelsSpacing(10f);
 
         // Animation customization
         Animation anim = new Animation(500);
         anim.setEasing(new CubicEase());
 //        anim.setOverlap(0.5f, new int[]{0, 1, 2, });
-        lineChartView.show(anim);
-//        lineChartView.setToo
-        lineChartView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-//                Tooltip tooltip = new Tooltip(getActivity());
-//                lineChartView.showTooltip(tooltip, true);
-            }
-        });
-        lineChartView.setOnEntryClickListener(new OnEntryClickListener() {
-            @Override
-            public void onClick(int setIndex, int entryIndex, Rect rect) {
-
-            }
-        });
+        mChart.show(anim);
     }
 }
