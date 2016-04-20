@@ -9,8 +9,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -47,6 +50,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 
     static final String DETAIL_URI = "URI";
     static final int COL_QUOTE_ID = 0;
+    static final String DETAIL_TRANSITION_ANIMATION = "DTA";
 
     private static final String LOG_TAG = DetailActivityFragment.class.getSimpleName();
     private static final int CURSOR_LOADER_ID = 0;
@@ -75,8 +79,10 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
     LineChartView mChart;
 
     private Uri mUri;
+    private boolean mTransitionAnimation;
 
     public DetailActivityFragment() {
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -86,6 +92,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
         Bundle arguments = getArguments();
         if (arguments != null) {
             mUri = arguments.getParcelable(DetailActivityFragment.DETAIL_URI);
+            mTransitionAnimation = arguments.getBoolean(DetailActivityFragment.DETAIL_TRANSITION_ANIMATION, false);
         }
         final View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
 
@@ -120,6 +127,10 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
                     null
             );
         }
+//        ViewParent vp = getView().getParent();
+//        if ( vp instanceof CardView ) {
+//            ((View)vp).setVisibility(View.INVISIBLE);
+//        }
         return null;
     }
 
@@ -163,11 +174,39 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 //
 //            fillLineSet(dataset, Math.round(minValue), Math.round(maxValue));
         }
+
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        Toolbar toolbarView = (Toolbar) getView().findViewById(R.id.toolbar);
+
+        // We need to start the enter transition after the data has loaded
+        if (mTransitionAnimation) {
+            activity.supportStartPostponedEnterTransition();
+
+            if (null != toolbarView) {
+                activity.setSupportActionBar(toolbarView);
+//                toolbarView.setTitle(mSymbol.getText());
+                activity.getSupportActionBar().setDisplayShowTitleEnabled(false);
+                activity.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            }
+        } else {
+            if (null != toolbarView) {
+                Menu menu = toolbarView.getMenu();
+                if (null != menu) menu.clear();
+                toolbarView.inflateMenu(R.menu.menu_detail);
+                finishCreatingMenu(toolbarView.getMenu());
+            }
+        }
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
 
+    }
+
+    private void finishCreatingMenu(Menu menu) {
+        // Retrieve the share menu item
+//        MenuItem menuItem = menu.findItem(R.id.action_share);
+//        menuItem.setIntent(createShareForecastIntent());
     }
 
     private void downloadDetails(String symbol) {
@@ -209,7 +248,7 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
             JSONArray labels = object.getJSONArray("labels");
             ArrayList<String> labelsList = new ArrayList<>();
             // skip first entry
-            for (int i = 1; i <labels.length(); i++) {
+            for (int i = 1; i < labels.length(); i++) {
                 labelsList.add(labels.getString(i));
             }
 
@@ -217,23 +256,28 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 
             SimpleDateFormat srcFormat = new SimpleDateFormat("yyyyMMdd");
             JSONArray series = object.getJSONArray("series");
+            int min = Integer.MAX_VALUE;
+            int max = Integer.MIN_VALUE;
             for (int i = 0; i < series.length(); i++) {
                 JSONObject seriesItem = series.getJSONObject(i);
                 String date = "";
                 if (labelsList.contains(seriesItem.getString("Date"))) {
                     date = android.text.format.DateFormat.getMediumDateFormat(getActivity()).format(srcFormat.parse(seriesItem.getString("Date")));
                 }
-                dataset.addPoint(date, Float.parseFloat(seriesItem.getString("close")));
+                float value = Float.parseFloat(seriesItem.getString("close"));
+                min = (int) Math.min(min, value); // 4.3 > 4; 4.7 > 4
+                max = (int) Math.max(max, value + 1);
+                dataset.addPoint(date, value);
             }
-            JSONObject closeRanges = object.getJSONObject("ranges").getJSONObject("close");
-            final int min = Math.round(Float.parseFloat(closeRanges.getString("min")));
-            final int max = Math.round(Float.parseFloat(closeRanges.getString("max")));
+//            JSONObject closeRanges = object.getJSONObject("ranges").getJSONObject("close");
+//            final int min = Math.round(Float.parseFloat(closeRanges.getString("min")));
+//            final int max = Math.round(Float.parseFloat(closeRanges.getString("max")));
             fillLineSet(dataset, min, max);
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    getActivity().setTitle(companyName);
-
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(true);
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(companyName);
                 }
             });
 
