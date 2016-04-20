@@ -32,8 +32,8 @@ import okhttp3.Response;
  * and is used for the initialization and adding task as well.
  */
 public class StockTaskService extends GcmTaskService {
+    private static final String YHOO_AAPL_GOOG_MSFT = "\"YHOO\",\"AAPL\",\"GOOG\",\"MSFT\")";
     private String LOG_TAG = StockTaskService.class.getSimpleName();
-
     private OkHttpClient client = new OkHttpClient();
     private Context mContext;
     private StringBuilder mStoredSymbols = new StringBuilder();
@@ -82,13 +82,16 @@ public class StockTaskService extends GcmTaskService {
         }
         if (params.getTag().equals("init") || params.getTag().equals("periodic")) {
             isUpdate = true;
-            initQueryCursor = mContext.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, null,
-                    null, null);
+            initQueryCursor = mContext.getContentResolver().query(
+                    QuoteProvider.Quotes.CONTENT_URI, // uri
+                    new String[]{"Distinct " + QuoteColumns.SYMBOL}, // projection
+                    null, // selection
+                    null, // selectionArgs
+                    null); // sort
             if (initQueryCursor == null || initQueryCursor.getCount() == 0) {
                 // Init task. Populates DB with quotes for the symbols seen below
                 try {
-                    urlStringBuilder.append(URLEncoder.encode("\"YHOO\",\"AAPL\",\"GOOG\",\"MSFT\")", "UTF-8"));
+                    urlStringBuilder.append(URLEncoder.encode(YHOO_AAPL_GOOG_MSFT, "UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -111,7 +114,7 @@ public class StockTaskService extends GcmTaskService {
         } else if (params.getTag().equals("add")) {
             isUpdate = false;
             // get symbol from params.getExtra and build query
-            String stockInput = params.getExtras().getString("symbol");
+            String stockInput = params.getExtras().getString("symbol").toUpperCase();
             try {
                 urlStringBuilder.append(URLEncoder.encode("\"" + stockInput + "\")", "UTF-8"));
             } catch (UnsupportedEncodingException e) {
@@ -128,20 +131,18 @@ public class StockTaskService extends GcmTaskService {
         urlString = urlStringBuilder.toString();
         try {
             getResponse = fetchData(urlString);
-            result = GcmNetworkManager.RESULT_SUCCESS;
             try {
                 ContentValues contentValues = new ContentValues();
                 // update ISCURRENT to 0 (false) so new data is current
                 if (isUpdate) {
                     contentValues.put(QuoteColumns.ISCURRENT, 0);
-                    mContext.getContentResolver().update(QuoteProvider.Quotes.CONTENT_URI, contentValues,
-                            null, null);
+                    mContext.getContentResolver().update(QuoteProvider.Quotes.CONTENT_URI, contentValues, null, null);
                 }
                 ArrayList cpo = Utils.quoteJsonToContentVals(getResponse);
                 if (cpo != null && cpo.isEmpty() == false) {
                     mContext.getContentResolver().applyBatch(QuoteProvider.AUTHORITY, cpo);
-                } else {
-                    return GcmNetworkManager.RESULT_FAILURE;
+                    Utils.updateWidget(mContext);
+                    result = GcmNetworkManager.RESULT_SUCCESS;
                 }
 
             } catch (RemoteException | OperationApplicationException e) {
@@ -154,5 +155,6 @@ public class StockTaskService extends GcmTaskService {
 
         return result;
     }
+
 
 }
