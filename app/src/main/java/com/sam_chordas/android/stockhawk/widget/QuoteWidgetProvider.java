@@ -22,13 +22,10 @@ import com.sam_chordas.android.stockhawk.ui.MyStocksActivity;
  */
 public class QuoteWidgetProvider extends AppWidgetProvider {
     private static final String LOG_TAG = QuoteWidgetProvider.class.getSimpleName();
-    public static String REFRESH_ACTION = "com.sam_chordas.android.stockhawk.widget.REFRESH";
-    public static String ACTION_CLICK = "ACTION_CLICK";
-    private boolean mIsLargeLayout = false;
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        Log.d(LOG_TAG, "onUpdate() mIsLargeLayout=" + mIsLargeLayout);
+        Log.d(LOG_TAG, "onUpdate()");
         final int N = appWidgetIds.length;
         // Perform this loop procedure for each App Widget that belongs to this provider
         for (int i = 0; i < N; i++) {
@@ -68,84 +65,12 @@ public class QuoteWidgetProvider extends AppWidgetProvider {
         final String action = intent.getAction();
         Log.d(LOG_TAG, "onReceive(action: " + action + ")");
 
-//        if (action.equals(AppWidgetManager.ACTION_APPWIDGET_OPTIONS_CHANGED)) {
-//            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(ctx);
-//            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(ctx, getClass()));
-////            appWidgetManager.updateAppWidget(appWidgetIds, buildLayout(ctx, appWidgetId));
-////            appWidgetManager.updateAppWidget(appWidgetIds[0], buildLayout(ctx, appWidgetIds[0]));
-//            for (int appWidgetId : appWidgetIds) {
-//                appWidgetManager.updateAppWidget(appWidgetId, buildLayout(ctx, appWidgetId));
-//            }
-//        } else if (action.equals(AppWidgetManager.ACTION_APPWIDGET_UPDATE)) {
-//            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(ctx);
-//            int[] appWidgetIds = null;
-//            if (intent.hasExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)) {
-//                appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS);
-//            } else {
-//                appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(ctx, getClass()));
-//            }
-//            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list);
-//        }
-
         super.onReceive(context, intent);
         if (AppWidgetManager.ACTION_APPWIDGET_UPDATE.equals(intent.getAction())) {
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
             int[] appWidgetIds = appWidgetManager.getAppWidgetIds(new ComponentName(context, getClass()));
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list);
         }
-    }
-
-//    @Override
-//    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
-//        Log.v(LOG_TAG, "onAppWidgetOptionsChanged()");
-////        context.startService(new Intent(context, TodayWidgetIntentService.class));
-//
-//        int minWidth = newOptions.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
-////        int maxWidth = newOptions.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH);
-////        int minHeight = newOptions.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT);
-////        int maxHeight = newOptions.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT);
-//
-//        RemoteViews layout;
-//        if (minWidth <= 225) {
-//            mIsLargeLayout = false;
-//        } else {
-//            mIsLargeLayout = true;
-//        }
-//        Log.d(LOG_TAG, "onAppWidgetOptionsChanged minWidth=" + minWidth + ", mIsLargeLayout=" + mIsLargeLayout);
-//        layout = buildLayout(context, appWidgetId);
-//        appWidgetManager.updateAppWidget(appWidgetId, layout);
-//        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions);
-//    }
-
-    private RemoteViews buildLayout(Context context, int appWidgetId) {
-        // Get the layout for the App Widget and attach an on-click listener to the button
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_collection);
-
-        // Create an Intent to refresh the widget
-        Intent intent = new Intent(context, QuoteWidgetProvider.class);
-        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[]{appWidgetId});
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        views.setOnClickPendingIntent(R.id.widget_title, pendingIntent);
-
-        // Create an Intent to launch MainActivity
-//            Intent intent2 = new Intent(context, MyStocksActivity.class);
-//            PendingIntent pendingIntent2 = PendingIntent.getActivity(context, 0, intent2, 0);
-//            views.setOnClickPendingIntent(R.id.widget, pendingIntent2);
-
-//        mIsLargeLayout = intent.getBooleanExtra(AppWidgetManager.EXTRA_CUSTOM_INFO, false);
-        Intent widgetIntent = new Intent(context, QuoteWidgetRemoteViewsService.class);
-        widgetIntent.putExtra(AppWidgetManager.EXTRA_CUSTOM_INFO, mIsLargeLayout);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            views.setRemoteAdapter(appWidgetId, R.id.widget_list, widgetIntent);
-        } else {
-            views.setRemoteAdapter(R.id.widget_list, widgetIntent);
-        }
-        // The empty view is displayed when the collection has no items.
-        // It should be in the same layout used to instantiate the RemoteViews
-        // object above.
-        views.setEmptyView(R.id.widget_list, R.id.empty_view);
-        return views;
     }
 
     /**

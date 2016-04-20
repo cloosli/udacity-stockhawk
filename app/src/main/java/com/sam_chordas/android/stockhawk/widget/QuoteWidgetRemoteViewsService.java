@@ -1,11 +1,12 @@
 package com.sam_chordas.android.stockhawk.widget;
 
-import android.appwidget.AppWidgetManager;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.util.Log;
 import android.widget.AdapterView;
 import android.widget.RemoteViews;
@@ -36,6 +37,7 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
     private static final int COL_QUOTE_ID = 0;
     private static final int COL_QUOTE_SYMBOL = 1;
     private static final int COL_QUOTE_PCHANGE = 2;
+    private static final int COL_QUOTE_BIDPRICE = 4;
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
@@ -44,12 +46,9 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
 
     class QuoteRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
         private Cursor mCursor = null;
-        private Context mContext;
-        private int mAppWidgetId;
 
         public QuoteRemoteViewsFactory(Context applicationContext, Intent intent) {
-            mContext = applicationContext;
-            mAppWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
+            Log.d(LOG_TAG, "QuoteRemoteViewsFactory()");
         }
 
         @Override
@@ -61,11 +60,11 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
         @Override
         public void onDataSetChanged() {
             Log.d(LOG_TAG, "onDataSetChanged()");
-            final long identityToken = Binder.clearCallingIdentity();
             // Refresh the cursor
             if (mCursor != null) {
                 mCursor.close();
             }
+            final long identityToken = Binder.clearCallingIdentity();
             Uri quoteUri = QuoteProvider.Quotes.CONTENT_URI;
             mCursor = getContentResolver().query(
                     quoteUri,
@@ -79,15 +78,15 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
 
         @Override
         public void onDestroy() {
-            Log.d(LOG_TAG, "onDestroy()");
             if (mCursor != null) {
                 mCursor.close();
+                mCursor = null;
             }
         }
 
         @Override
         public int getCount() {
-            return mCursor.getCount();
+            return mCursor == null ? 0 : mCursor.getCount();
         }
 
         @Override
@@ -99,18 +98,25 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
             RemoteViews views = new RemoteViews(getPackageName(), R.layout.widget_collection_item);
 
             final String symbol = mCursor.getString(COL_QUOTE_SYMBOL);
+            views.setContentDescription(R.id.stock_symbol, symbol);
             views.setTextViewText(R.id.stock_symbol, symbol);
             views.setTextViewText(R.id.change, mCursor.getString(COL_QUOTE_PCHANGE));
+            views.setTextViewText(R.id.bid_price, mCursor.getString(COL_QUOTE_BIDPRICE));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
+                setRemoteContentDescription(views, symbol);
+            }
 
             Uri quoteUri = QuoteProvider.Quotes.withSymbol(symbol);
-            Intent intent = new Intent();
-            intent.setData(quoteUri);
-            views.setOnClickFillInIntent(R.id.widget_list_item, intent);
+            final Intent fillInIntent = new Intent();
+            fillInIntent.setData(quoteUri);
+            views.setOnClickFillInIntent(R.id.widget_list_item, fillInIntent);
+
             return views;
         }
 
         @Override
         public RemoteViews getLoadingView() {
+            Log.d(LOG_TAG, "getLoadingView()");
             return new RemoteViews(getPackageName(), R.layout.widget_collection_item);
         }
 
@@ -130,6 +136,11 @@ public class QuoteWidgetRemoteViewsService extends RemoteViewsService {
         @Override
         public boolean hasStableIds() {
             return true;
+        }
+
+        @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
+        private void setRemoteContentDescription(RemoteViews views, String description) {
+            views.setContentDescription(R.id.stock_symbol, description);
         }
     }
 }
