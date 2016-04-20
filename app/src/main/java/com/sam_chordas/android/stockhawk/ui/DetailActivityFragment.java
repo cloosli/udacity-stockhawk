@@ -256,8 +256,8 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
 
             SimpleDateFormat srcFormat = new SimpleDateFormat("yyyyMMdd");
             JSONArray series = object.getJSONArray("series");
-            int min = Integer.MAX_VALUE;
-            int max = Integer.MIN_VALUE;
+//            int min = Integer.MAX_VALUE;
+//            int max = Integer.MIN_VALUE;
             for (int i = 0; i < series.length(); i++) {
                 JSONObject seriesItem = series.getJSONObject(i);
                 String date = "";
@@ -265,14 +265,14 @@ public class DetailActivityFragment extends Fragment implements LoaderManager.Lo
                     date = android.text.format.DateFormat.getMediumDateFormat(getActivity()).format(srcFormat.parse(seriesItem.getString("Date")));
                 }
                 float value = Float.parseFloat(seriesItem.getString("close"));
-                min = (int) Math.min(min, value); // 4.3 > 4; 4.7 > 4
-                max = (int) Math.max(max, value + 1);
+//                min = (int) Math.min(min, value); // 4.3 > 4; 4.7 > 4
+//                max = (int) Math.max(max, value);
                 dataset.addPoint(date, value);
             }
-//            JSONObject closeRanges = object.getJSONObject("ranges").getJSONObject("close");
-//            final int min = Math.round(Float.parseFloat(closeRanges.getString("min")));
-//            final int max = Math.round(Float.parseFloat(closeRanges.getString("max")));
-            fillLineSet(dataset, min, max);
+            JSONObject closeRanges = object.getJSONObject("ranges").getJSONObject("close");
+            final int min = (int) Float.parseFloat(closeRanges.getString("min"));
+            final int max = (int) Float.parseFloat(closeRanges.getString("max"));
+            fillLineSet(dataset, min, max + 1);
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
