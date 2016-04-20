@@ -125,20 +125,19 @@ public class MyStocksActivity extends AppCompatActivity
                                 public void onInput(MaterialDialog dialog, CharSequence input) {
                                     // On FAB click, receive user input. Make sure the stock doesn't already exist
                                     // in the DB and proceed accordingly
+                                    String symbol = input.toString().toUpperCase();
                                     Cursor c = getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
                                             new String[]{QuoteColumns.SYMBOL}, QuoteColumns.SYMBOL + "= ?",
-                                            new String[]{input.toString()}, null);
+                                            new String[]{symbol}, null);
                                     if (c.getCount() != 0) {
-                                        Toast toast =
-                                                Toast.makeText(MyStocksActivity.this, "This stock is already saved!",
-                                                        Toast.LENGTH_LONG);
+                                        Toast toast = Toast.makeText(MyStocksActivity.this, "This stock is already saved!", Toast.LENGTH_LONG);
                                         toast.setGravity(Gravity.CENTER, Gravity.CENTER, 0);
                                         toast.show();
                                         return;
                                     } else {
                                         // Add the stock to DB
                                         mServiceIntent.putExtra("tag", "add");
-                                        mServiceIntent.putExtra("symbol", input.toString());
+                                        mServiceIntent.putExtra("symbol", symbol);
                                         startService(mServiceIntent);
                                     }
                                 }
@@ -157,9 +156,8 @@ public class MyStocksActivity extends AppCompatActivity
 
         mTitle = getTitle();
         if (isConnected) {
-            long period = 3600L;
-//            long period = 1L; // debug only
-            long flex = 10L;
+            long period = 60 * 60;
+            long flex = 60L; // seconds
             String periodicTag = "periodic";
 
             // create a periodic task to pull stocks once every hour after the app has been opened. This
@@ -171,9 +169,9 @@ public class MyStocksActivity extends AppCompatActivity
                     .setTag(periodicTag)
                     .setRequiredNetwork(Task.NETWORK_STATE_CONNECTED)
                     .setRequiresCharging(false)
+                    .setUpdateCurrent(true)
                     .build();
-            // Schedule task with tag "periodic." This ensure that only the stocks present in the DB
-            // are updated.
+            // Schedule task with tag "periodic." This ensure that only the stocks present in the DB are updated.
             GcmNetworkManager.getInstance(this).schedule(periodicTask);
         }
     }
@@ -242,7 +240,7 @@ public class MyStocksActivity extends AppCompatActivity
     public void onLoaderReset(Loader<Cursor> loader) {
         mCursorAdapter.swapCursor(null);
     }
-    
+
     private void updateEmptyView() {
         if (mCursorAdapter.getItemCount() == 0) {
             int message = R.string.empty_quote_list;
