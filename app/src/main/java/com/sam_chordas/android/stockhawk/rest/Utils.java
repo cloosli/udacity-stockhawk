@@ -1,13 +1,17 @@
 package com.sam_chordas.android.stockhawk.rest;
 
+import android.app.PendingIntent;
+import android.appwidget.AppWidgetManager;
 import android.content.ContentProviderOperation;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
 
 import com.sam_chordas.android.stockhawk.data.QuoteColumns;
 import com.sam_chordas.android.stockhawk.data.QuoteProvider;
+import com.sam_chordas.android.stockhawk.widget.QuoteWidgetProvider;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,10 +24,9 @@ import java.util.ArrayList;
  */
 public class Utils {
 
+    public static final String KEY_QUERY = "query";
     public static boolean showPercent = true;
     private static String LOG_TAG = Utils.class.getSimpleName();
-
-    public static final String KEY_QUERY = "query";
 
     public static ArrayList quoteJsonToContentVals(String JSON) {
         ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
@@ -114,5 +117,16 @@ public class Utils {
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         boolean isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
         return isConnected;
+    }
+
+    public static void updateWidget(Context ctx) {
+        try {
+            Intent updateWidget = new Intent(ctx, QuoteWidgetProvider.class);
+            updateWidget.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            PendingIntent pending = PendingIntent.getBroadcast(ctx, 0, updateWidget, PendingIntent.FLAG_CANCEL_CURRENT);
+            pending.send();
+        } catch (PendingIntent.CanceledException e) {
+            Log.e(LOG_TAG, "Error send pending intent", e);
+        }
     }
 }
