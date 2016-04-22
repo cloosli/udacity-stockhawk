@@ -1,5 +1,6 @@
 package com.sam_chordas.android.stockhawk.rest;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -52,19 +53,15 @@ public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAda
         int sdk = Build.VERSION.SDK_INT;
         if (cursor.getInt(cursor.getColumnIndex("is_up")) == 1) {
             if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
-                viewHolder.change.setBackgroundDrawable(
-                        mContext.getResources().getDrawable(R.drawable.percent_change_pill_green));
+                setBackgroundV15(viewHolder, R.drawable.percent_change_pill_green);
             } else {
-                viewHolder.change.setBackground(
-                        mContext.getResources().getDrawable(R.drawable.percent_change_pill_green));
+                setBackground(viewHolder, R.drawable.percent_change_pill_green);
             }
         } else {
             if (sdk < Build.VERSION_CODES.JELLY_BEAN) {
-                viewHolder.change.setBackgroundDrawable(
-                        mContext.getResources().getDrawable(R.drawable.percent_change_pill_red));
+                setBackgroundV15(viewHolder, R.drawable.percent_change_pill_red);
             } else {
-                viewHolder.change.setBackground(
-                        mContext.getResources().getDrawable(R.drawable.percent_change_pill_red));
+                setBackground(viewHolder, R.drawable.percent_change_pill_red);
             }
         }
         if (Utils.showPercent) {
@@ -72,6 +69,16 @@ public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAda
         } else {
             viewHolder.change.setText(cursor.getString(cursor.getColumnIndex("change")));
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void setBackgroundV15(ViewHolder viewHolder, int drawableId) {
+        viewHolder.change.setBackgroundDrawable(mContext.getResources().getDrawable(drawableId));
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void setBackground(ViewHolder viewHolder, int drawableId) {
+        viewHolder.change.setBackground(mContext.getResources().getDrawable(drawableId));
     }
 
     @Override
@@ -114,6 +121,7 @@ public class QuoteCursorAdapter extends CursorRecyclerViewAdapter<QuoteCursorAda
         }
 
         @Override
-        public void onClick(View v) { }
+        public void onClick(View v) {
+        }
     }
 }

@@ -18,16 +18,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="3dp"
-        android:gravity="left|center_vertical"
+        android:gravity="start|center_vertical"
         tools:text="GOOG"
-        android:layout_gravity="center_vertical|left" />
+        android:layout_gravity="center_vertical|start" />
 
     <TextView
         android:id="@+id/change"
         style="@style/PercentChangeTextStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical|right"
+        android:layout_gravity="center_vertical|end"
         android:layout_margin="3dp"
         android:background="@drawable/percent_change_pill"
         android:paddingLeft="3dp"

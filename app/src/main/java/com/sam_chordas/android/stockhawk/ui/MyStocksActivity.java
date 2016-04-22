@@ -104,15 +104,12 @@ public class MyStocksActivity extends AppCompatActivity
                         Intent intent = new Intent(mContext, DetailActivity.class);
                         mCursor.moveToPosition(position);
                         Uri contentUri = QuoteProvider.Quotes.withSymbol(mCursor.getString(mCursor.getColumnIndex(QuoteColumns.SYMBOL)));
-//                        intent.putExtra(QuoteColumns.SYMBOL, mCursor.getString(mCursor.getColumnIndex(QuoteColumns.SYMBOL)));
-//                        Intent intent = new Intent(mContext, DetailActivity.class).setData(contentUri);
                         intent.setData(contentUri);
                         startActivity(intent);
                     }
                 }));
         recyclerView.setAdapter(mCursorAdapter);
 
-//        mFAB.attachToRecyclerView(recyclerView);
         mFAB.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -130,11 +127,13 @@ public class MyStocksActivity extends AppCompatActivity
                                             new String[]{QuoteColumns.SYMBOL}, QuoteColumns.SYMBOL + "= ?",
                                             new String[]{symbol}, null);
                                     if (c.getCount() != 0) {
+                                        c.close();
                                         Toast toast = Toast.makeText(MyStocksActivity.this, "This stock is already saved!", Toast.LENGTH_LONG);
                                         toast.setGravity(Gravity.CENTER, Gravity.CENTER, 0);
                                         toast.show();
                                         return;
                                     } else {
+                                        c.close();
                                         // Add the stock to DB
                                         mServiceIntent.putExtra("tag", "add");
                                         mServiceIntent.putExtra("symbol", symbol);
