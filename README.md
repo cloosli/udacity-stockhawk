@@ -16,11 +16,11 @@ In this project, I will:
  - Leverage the functionality of a library in your app.
 
 #### TODO:
- - Screen Reader > all buttons
- - Egypt release > rtl
- - Detail > price over time
- - Widget
- - Bugfixes > notfound, connection, blank screen
+ ~~- Screen Reader > all buttons~~
+ ~~- Egypt release > rtl~~
+ ~~- Detail > price over time~~
+ ~~- Widget~~
+ ~~- Bugfixes > notfound, connection, blank screen~~
 
 
 ### Screenshots
