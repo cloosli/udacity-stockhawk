@@ -24,5 +24,6 @@ In this project, I will:
 
 
 ### Screenshots
-![alt tag](https://raw.githubusercontent.com/cloosli/udacity-stockhawk/master/art/screenshot.jpg)
-![alt tag](https://raw.githubusercontent.com/cloosli/udacity-stockhawk/master/art/screenshot-1.jpg)
+![alt tag](art/Screenshot_20160811-142248.png)
+![alt tag](art/Screenshot_20160811-142306.png)
+![alt tag](art/Screenshot_20160811-142346.png)
